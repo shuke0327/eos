@@ -1,8 +1,15 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #include <eoslib/message.h>
 //#include <eoslib/types.hpp>
 #include <eoslib/memory.hpp>
 
 extern "C" {
+
+    const uint32_t _64K = 65536;
+
     void init()
     {
     }
@@ -27,9 +34,9 @@ extern "C" {
     {
        // initial buffer will be exhausted at 8192
 
-       // 8178 left (10 + ptr header)
-       char* ptr1 = (char*)eos::malloc(10);
-       assert(ptr1 != nullptr, "should have allocated 10 char buf");
+       // 8176 left (12 + ptr header)
+       char* ptr1 = (char*)eos::malloc(12);
+       assert(ptr1 != nullptr, "should have allocated 12 char buf");
        // leave a little space at end of 1st buffer
        char* ptr2 = (char*)eos::malloc(8159);
        assert(ptr2 != nullptr, "should have allocated 8159 char buf");
@@ -39,8 +46,8 @@ extern "C" {
        assert(ptr3 != nullptr, "should have allocated a 20 char buf");
        verify(ptr3, 0, 20);
        // re-sized in 1st memory heap
-       char* ptr2_realloc = (char*)eos::realloc(ptr2, 8174);
-       assert(ptr2_realloc != nullptr, "should have returned a 8174 char buf");
+       char* ptr2_realloc = (char*)eos::realloc(ptr2, 8172);
+       assert(ptr2_realloc != nullptr, "should have returned a 8172 char buf");
        assert(ptr2_realloc == ptr2, "should have enlarged the 8159 char buf");
 
        // re-sized in 1st memory heap
@@ -59,9 +66,9 @@ extern "C" {
        assert(ptr1_realloc == ptr1, "should have enlarged the 5 char buf");
 
        // re-size into 2nd memory heap
-       ptr1_realloc = (char*)eos::realloc(ptr1, 11);
-       assert(ptr1_realloc != nullptr, "should have returned a 11 char buf");
-       assert(ptr1_realloc != ptr1, "should have reallocated the 10 char buf");
+       ptr1_realloc = (char*)eos::realloc(ptr1, 13);
+       assert(ptr1_realloc != nullptr, "should have returned a 13 char buf");
+       assert(ptr1_realloc != ptr1, "should have reallocated the 12 char buf");
        assert(ptr4 + 20 < ptr1_realloc, "11 char buf should have been created after ptr4"); // test specific to implementation (can remove for refactor)
 
        // allocate rest of 2nd memory heap (1024 chars total)
@@ -79,28 +86,71 @@ extern "C" {
        char* ptr6 = (char*)eos::malloc(996);
        assert(ptr6 != nullptr, "should have allocated a 996 char buf");
        assert(ptr5 + 1020 < ptr6, "1020 char buf should have been created after ptr5"); // test specific to implementation (can remove for refactor)
+    }
 
-       // 21 char buffer exceeds inital buffer of 1024 (WILL CHANGE WHEN ACTUALLY ALLOCATING PAGE MEMORY)
-       char* ptr7 = (char*)eos::malloc(21);
-       assert(ptr7 == nullptr, "should not have allocated a 21 char buf");
+    void test_page_memory()
+    {
+       auto prev = sbrk(0);
 
-       // allocated to 4 less than end (1020 chars)
-       char* ptr8 = (char*)eos::malloc(16);
-       assert(ptr8 != nullptr, "should have allocated a 16 char buf");
-       assert(ptr7 + 20 < ptr8, "16 char buf should have been created after ptr7"); // test specific to implementation (can remove for refactor)
+       assert(reinterpret_cast<uint32_t>(prev) == _64K, "Should initially have 1 64K page allocated");
 
-       // at 1020, not enough space to allocated any memory besides the ptr header
-       char* ptr9 = (char*)eos::malloc(1);
-       assert(ptr9 == nullptr, "should not have allocated a 1 char buf");
+       prev = sbrk(1);
 
-       // at 1020, reallocate the last 4 chars
-       char* ptr8_realloc = (char*)eos::realloc(ptr8, 20);
-       assert(ptr8_realloc != nullptr, "should have returned a 20 char buf");
-       assert(ptr8_realloc == ptr8, "should have enlarged the 16 char buf");
+       assert(reinterpret_cast<uint32_t>(prev) == _64K, "Should still point to the end of 1st 64K page");
 
-       // at 1024, no memory remains
-       char* ptr10 = (char*)eos::malloc(10);
-       assert(ptr10 == nullptr, "should not have allocated a 10 char buf");
+       prev = sbrk(2);
+
+       assert(reinterpret_cast<uint32_t>(prev) == _64K + 8, "Should point to 8 past the end of 1st 64K page");
+
+       prev = sbrk(_64K - 17);
+
+       assert(reinterpret_cast<uint32_t>(prev) == _64K + 16, "Should point to 16 past the end of 1st 64K page");
+
+       prev = sbrk(1);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 2*_64K, "Should point to the end of 2nd 64K page");
+
+       prev = sbrk(_64K);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 2*_64K + 8, "Should point to 8 past the end of the 2nd 64K page");
+
+       prev = sbrk(_64K - 15);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 3*_64K + 8, "Should point to 8 past the end of the 3rd 64K page");
+
+       prev = sbrk(2*_64K - 1);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 4*_64K, "Should point to the end of 4th 64K page");
+
+       prev = sbrk(2*_64K);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 6*_64K, "Should point to the end of 6th 64K page");
+
+       prev = sbrk(2*_64K + 1);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 8*_64K, "Should point to the end of 8th 64K page");
+
+       prev = sbrk(6*_64K - 15);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 10*_64K + 8, "Should point to 8 past the end of 13th 64K page");
+
+       prev = sbrk(0);
+
+       assert(reinterpret_cast<uint32_t>(prev) == 16*_64K, "Should point to the end of 16th 64K page");
+    }
+
+    void test_page_memory_exceeded()
+    {
+       auto prev = sbrk(15*_64K);
+       assert(reinterpret_cast<uint32_t>(prev) == _64K, "Should have allocated up to the 1M of memory limit");
+       sbrk(1);
+       assert(0, "Should have thrown exception for trying to allocate more than 1M of memory");
+    }
+
+    void test_page_memory_negative_bytes()
+    {
+       sbrk(-1);
+       assert(0, "Should have thrown exception for trying to remove memory");
     }
 
     /// The apply method implements the dispatch of events to this contract
@@ -111,6 +161,27 @@ extern "C" {
           if( action == N(transfer) )
           {
              test_extended_memory();
+          }
+       }
+       else if( code == N(testpagemem) )
+       {
+          if( action == N(transfer) )
+          {
+             test_page_memory();
+          }
+       }
+       else if( code == N(testmemexc) )
+       {
+          if( action == N(transfer) )
+          {
+             test_page_memory_exceeded();
+          }
+       }
+       else if( code == N(testnegbytes) )
+       {
+          if( action == N(transfer) )
+          {
+             test_page_memory_negative_bytes();
           }
        }
     }

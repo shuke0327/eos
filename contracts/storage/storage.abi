@@ -10,15 +10,15 @@
         "fields": {
             "from": "AccountName",
             "to": "AccountName",
-            "quantity": "UInt64"
+            "amount": "UInt64"
         } 
     },{
         "name": "Account",
         "base": "",
         "fields": {
             "account": "AccountName",
-            "balance": "UInt64",
-            "quotaused: "UInt64"
+            "tokbalance": "UInt64",
+            "quotausage": "UInt64"
         }
     },{ 
         "name": "Link",
@@ -30,7 +30,7 @@
             "size"  : "UInt32",
             "store" : "UInt8",
             "accept": "UInt8",
-            "stake: : "UInt64",
+            "stake" : "UInt64",
             "producer": "AccountName"
         }
     }

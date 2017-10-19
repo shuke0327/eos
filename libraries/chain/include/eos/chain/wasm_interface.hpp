@@ -1,3 +1,7 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #pragma once
 #include <eos/chain/exceptions.hpp>
 #include <eos/chain/message.hpp>
@@ -7,7 +11,9 @@
 
 namespace eos { namespace chain {
 
-class  chain_controller;
+class chain_controller;
+class wasm_memory;
+
 /**
  * @class wasm_interface
  *
@@ -30,7 +36,7 @@ class wasm_interface {
       static wasm_interface& get();
 
       void init( apply_context& c );
-      void apply( apply_context& c );
+      void apply( apply_context& c, uint32_t execution_time );
       void validate( apply_context& c );
       void precondition( apply_context& c );
 
@@ -43,6 +49,9 @@ class wasm_interface {
       Runtime::MemoryInstance*   current_memory  = nullptr;
       Runtime::ModuleInstance*   current_module  = nullptr;
       ModuleState*               current_state   = nullptr;
+      wasm_memory*               current_memory_management = nullptr;
+
+      uint32_t                   checktime_limit = 0;
 
    private:
       void load( const AccountName& name, const chainbase::database& db );

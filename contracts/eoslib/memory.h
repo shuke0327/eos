@@ -1,3 +1,7 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #pragma once
 
 #include <eoslib/types.h>
@@ -18,6 +22,24 @@ extern "C" {
    */
 
  /**
+   * Allocate page(s) of memory to accommodate the
+   * requested number of bytes.
+   * @brief Allocate page memory
+   * @param num_bytes  Number of bytes to add.
+   *
+   * @return void pointer to the previous end of allocated bytes
+   *
+   * Example:
+   * @code
+   * // allocate a whole new page, the returned offset is the pointer to the
+   * // newly allocated page
+   * char* new_page = static_cast<char*>(sbrk(65536));
+   * memset(new_page, 0, 65536);
+   * @endcode
+   */
+  void* sbrk( uint32_t num_bytes );
+
+ /**
   * Copy a block of memory from source to destination.
   * @brief Copy a block of memory from source to destination.
   * @param destination  Pointer to the destination to copy to.
@@ -35,6 +57,19 @@ extern "C" {
   * @endcode
   */
   void* memcpy( void* destination, const void* source, uint32_t num );
+
+  /**
+   * Compare block of memory from source to destination.
+   * @brief Copy a block of memory from source to destination.
+   * @param ptr1       Pointer to first data to compare
+   * @param ptr2       Pointer to second data to compare
+   * @param num        Number of bytes to compare.
+   *
+   * @return the destination pointer
+   *
+   */
+   int32_t memcmp( void* ptr1, const void* ptr2, uint32_t num );
+
 
   /**
    * Fill block of memory.

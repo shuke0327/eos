@@ -1,3 +1,7 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #pragma once
 #include <appbase/application.hpp>
 #include <eos/chain/chain_controller.hpp>
@@ -219,7 +223,6 @@ public:
    
       vector<char> data;
    
-      auto start = fc::time_point::now();
       auto end   = fc::time_point::now() + fc::microseconds( 1000*10 ); /// 10ms max time
    
       int count = 0;
@@ -295,6 +298,10 @@ public:
    const chain_controller& chain() const;
 
   void get_chain_id (chain::chain_id_type &cid) const;
+
+  static const uint32_t            DEFAULT_RECEIVED_BLOCK_TRANSACTION_EXECUTION_TIME;
+  static const uint32_t            DEFAULT_TRANSACTION_EXECUTION_TIME;
+  static const uint32_t            DEFAULT_CREATE_BLOCK_TRANSACTION_EXECUTION_TIME;
 
 private:
    unique_ptr<class chain_plugin_impl> my;

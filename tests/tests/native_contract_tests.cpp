@@ -1,3 +1,7 @@
+/**
+ *  @file
+ *  @copyright defined in eos/LICENSE.txt
+ */
 #include <boost/test/unit_test.hpp>
 
 #include <eos/chain/chain_controller.hpp>
@@ -6,6 +10,7 @@
 #include <eos/chain/permission_link_object.hpp>
 #include <eos/chain/key_value_object.hpp>
 #include <eos/chain/authority_checker.hpp>
+#include <eos/chain_plugin/chain_plugin.hpp>
 
 #include <eos/native_contract/producer_objects.hpp>
 
@@ -397,6 +402,45 @@ BOOST_FIXTURE_TEST_CASE(auth_tests, testing_fixture) {
    BOOST_CHECK_THROW(Delete_Authority(chain, alice, "active"), message_validate_exception);
    BOOST_CHECK_THROW(Delete_Authority(chain, alice, "owner"), message_validate_exception);
 
+   // Change owner permission
+   Make_Key(new_owner_key);
+   Set_Authority(chain, alice, "owner", "", Key_Authority(new_owner_key_public_key));
+   chain.produce_blocks();
+
+   permission_object::id_type owner_id;
+   {
+      auto obj = chain_db.find<permission_object, by_owner>(boost::make_tuple("alice", "owner"));
+      BOOST_CHECK_NE(obj, nullptr);
+      BOOST_CHECK_EQUAL(obj->owner, "alice");
+      BOOST_CHECK_EQUAL(obj->name, "owner");
+      BOOST_CHECK_EQUAL(obj->parent, 0); owner_id = obj->id;
+      auto auth = obj->auth.to_authority();
+      BOOST_CHECK_EQUAL(auth.threshold, 1);
+      BOOST_CHECK_EQUAL(auth.keys.size(), 1);
+      BOOST_CHECK_EQUAL(auth.accounts.size(), 0);
+      BOOST_CHECK_EQUAL(auth.keys[0].key, new_owner_key_public_key);
+      BOOST_CHECK_EQUAL(auth.keys[0].weight, 1);
+   }
+
+   // Change active permission
+   Make_Key(new_active_key);
+   Set_Authority(chain, alice, "active", "owner", Key_Authority(new_active_key_public_key));
+   chain.produce_blocks();
+
+   {
+      auto obj = chain_db.find<permission_object, by_owner>(boost::make_tuple("alice", "active"));
+      BOOST_CHECK_NE(obj, nullptr);
+      BOOST_CHECK_EQUAL(obj->owner, "alice");
+      BOOST_CHECK_EQUAL(obj->name, "active");
+      BOOST_CHECK_EQUAL(obj->parent, owner_id);
+      auto auth = obj->auth.to_authority();
+      BOOST_CHECK_EQUAL(auth.threshold, 1);
+      BOOST_CHECK_EQUAL(auth.keys.size(), 1);
+      BOOST_CHECK_EQUAL(auth.accounts.size(), 0);
+      BOOST_CHECK_EQUAL(auth.keys[0].key, new_active_key_public_key);
+      BOOST_CHECK_EQUAL(auth.keys[0].weight, 1);
+   }
+
    Make_Key(k1);
    Make_Key(k2);
    Set_Authority(chain, alice, "spending", "active", Key_Authority(k1_public_key));
@@ -556,7 +600,7 @@ BOOST_FIXTURE_TEST_CASE(auth_links, testing_fixture) { try {
    chain.review_transaction([&chain](SignedTransaction& trx, auto) { chain.sign_transaction(trx); return true; });
    chain.produce_blocks();
    // And now the backed up transaction should succeed, because scud is sufficient authority for all except "transfer"
-   chain.chain_controller::push_transaction(backup);
+   chain.chain_controller::push_transaction(backup, chain_controller::pushed_transaction);
 
    // But transfers with scud authority should still not work, because there's an overriding link to spending
    Transfer_Asset(chain, alice, bob, Asset(10));

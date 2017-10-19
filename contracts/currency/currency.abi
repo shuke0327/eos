@@ -10,7 +10,7 @@
       "fields": {
         "from": "AccountName",
         "to": "AccountName",
-        "quantity": "UInt64"
+        "amount": "UInt64"
       }
     },{
       "name": "account",

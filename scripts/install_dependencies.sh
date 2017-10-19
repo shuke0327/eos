@@ -4,7 +4,7 @@ if [ $ARCH == "ubuntu" ]; then
     # install dev toolkit
     sudo apt-get update
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-    sudo apt-get install clang-4.0 lldb-4.0 cmake make \
+    sudo apt-get -y install clang-4.0 lldb-4.0 cmake make \
                          libbz2-dev libssl-dev libgmp3-dev \
                          autotools-dev build-essential \
                          libbz2-dev libicu-dev python-dev \
@@ -60,7 +60,7 @@ if [ $ARCH == "ubuntu" ]; then
 fi
 
 if [ $ARCH == "darwin" ]; then
-    DEPS="git automake libtool boost openssl llvm@4 gmp wget cmake"
+    DEPS="git automake libtool boost openssl llvm@4 gmp wget cmake gettext"
     brew update
     brew install --force $DEPS
     brew unlink $DEPS && brew link --force $DEPS
